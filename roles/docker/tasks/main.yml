@@ -1,0 +1,109 @@
+---
+# tasks file for docker
+
+
+
+
+
+- name: Check if docker is installed
+  shell: which docker
+  register: docker_status
+  tags:
+    - check
+
+
+
+
+
+- name: Check if listed package installed(Debian)
+  shell: dpkg-query -l "{{ item }}"
+  loop: [ca-certificates, gnupg, lsb-release]
+  register: debian_package_check
+  when: not docker_status and ansible_facts['os_family'] == "Debian"
+  tags:
+    - check
+
+
+
+
+- name: Install docker packages
+  become: yes
+  apt:
+    name:
+      - ca-certificates
+      - gnupg
+      - lsb-release
+    state: present
+  when: not docker_status and ansible_facts['os_family'] == 'Debian'
+  tags:
+    - install
+
+
+
+- name: Add docker gpg key for apt
+  become: yes
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  when: not docker_status and ansible_facts['os_family'] == 'Debian'
+  tags:
+    - config
+
+
+
+- name: Add docker repository to apt
+  become: yes
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+  when: not docker_status and ansible_facts['os_family'] == 'Debian'
+  tags:
+    - config
+
+
+
+
+- name: Install docker(Debian)
+  become: yes
+  apt:
+    update_cache: yes
+    name: docker-ce
+    state: present
+  when: not docker_status and ansible_facts['os_family'] == 'Debian'
+  tags:
+    - install
+
+
+
+- name: Check if listed package is installed
+  command: rpm -q "{{ item }}"
+  loop: [docker-ce, docker-ce-cli, containerd.io]
+  register: rhel_package_check
+  when: ansible_facts['os_family'] == "RedHat"
+  tags:
+    - check
+
+
+
+
+- name: Add docker repository with yum
+  become: yes
+  yum_repository:
+    baseurl: https://download.docker.com/linux/rhel/docker-ce.repo
+  when: not docker_status and ansible_facts['os_family'] == "RedHat"
+  tags:
+    - config
+
+
+
+
+- name: Install docker(RHEL)
+  become: yes
+  yum:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+  when: docker_status and ansible_facts['os_family'] == "RedHat"
+  tags:
+    - install

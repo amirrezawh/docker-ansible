@@ -1,0 +1,8 @@
+---
+# vars file for docker
+
+vars:
+  docker_packages:
+    - ca-certificates
+    - gnupg
+    - lsb-release
